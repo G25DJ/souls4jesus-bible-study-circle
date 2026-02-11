@@ -1,9 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, Share2, ThumbsUp, PlusCircle, Edit2, Check, X, Trash2, Send, Loader2 } from 'lucide-react';
+import { MessageSquare, Heart, Share2, ThumbsUp, PlusCircle, Edit2, Check, X, Trash2, Send, Loader2, User } from 'lucide-react';
 import { Circle } from '../types';
 
 interface CommunityProps {
+  isAdmin?: boolean;
+}
+
+interface Comment {
+  id: string;
+  author: string;
+  content: string;
+  time: string;
   isAdmin?: boolean;
 }
 
@@ -16,7 +24,8 @@ interface Post {
   likes: number;
   loves: number;
   shares: number;
-  comments: number;
+  comments: number; // count
+  commentsList?: Comment[];
   timestamp: number;
 }
 
@@ -39,7 +48,11 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
   const [isPosting, setIsPosting] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
-  // Tracking user reactions locally (to simulate real user state)
+  // Comment State
+  const [openCommentId, setOpenCommentId] = useState<string | null>(null);
+  const [newCommentText, setNewCommentText] = useState<{ [postId: string]: string }>({});
+
+  // Tracking user reactions locally
   const [userReactions, setUserReactions] = useState<{ [postId: string]: { liked?: boolean, loved?: boolean } }>(() => {
     const saved = localStorage.getItem('s4j_user_reactions');
     return saved ? JSON.parse(saved) : {};
@@ -70,6 +83,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
         loves: 0,
         shares: 0,
         comments: 0,
+        commentsList: [],
         timestamp: Date.now()
       };
       
@@ -103,6 +117,32 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
     }));
   };
 
+  const handleCommentSubmit = (postId: string) => {
+    const content = newCommentText[postId];
+    if (!content?.trim()) return;
+
+    const newComment: Comment = {
+      id: Date.now().toString(),
+      author: isAdmin ? 'Admin Shepherd' : 'Community Member',
+      content: content.trim(),
+      time: 'Just now',
+      isAdmin: isAdmin
+    };
+
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          comments: post.comments + 1,
+          commentsList: [...(post.commentsList || []), newComment]
+        };
+      }
+      return post;
+    }));
+
+    setNewCommentText(prev => ({ ...prev, [postId]: '' }));
+  };
+
   const handleShare = (postId: string) => {
     setPosts(prev => prev.map(post => {
       if (post.id === postId) {
@@ -111,7 +151,6 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
       return post;
     }));
 
-    // Mock share functionality
     navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`).then(() => {
       setShareFeedback(postId);
       setTimeout(() => setShareFeedback(null), 2000);
@@ -257,9 +296,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
                 className="w-full p-4 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-amber-500 resize-none h-28 placeholder:text-stone-400 text-stone-700 transition-all"
               ></textarea>
               <div className="flex justify-between items-center mt-4">
-                <div className="flex gap-2">
-                  {/* Additional attachments icon - simplified for now */}
-                </div>
+                <div className="flex gap-2"></div>
                 <button 
                   onClick={handlePostSubmit}
                   disabled={!newPostContent.trim() || isPosting}
@@ -285,71 +322,126 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
               const isLiked = userReactions[post.id]?.liked;
               const isLoved = userReactions[post.id]?.loved;
               const isSharing = shareFeedback === post.id;
+              const isCommentsOpen = openCommentId === post.id;
 
               return (
-                <article key={post.id} className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200 shadow-sm hover:shadow-md transition-all group relative animate-in slide-in-from-top-4 duration-300">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => handleDeletePost(post.id)}
-                      className="absolute top-6 right-6 p-2 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                      title="Remove Post (Admin)"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                  
-                  <div className="flex items-center gap-4 mb-6">
-                    <img src={post.avatar} className="w-12 h-12 rounded-full border border-stone-100 object-cover shadow-sm" alt={post.author} />
-                    <div>
-                      <h4 className="font-bold text-stone-900 flex items-center gap-2">
-                        {post.author}
-                        {post.author.includes('Admin') && (
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full font-bold uppercase tracking-wider">Staff</span>
+                <article key={post.id} className="bg-white rounded-3xl overflow-hidden border border-stone-200 shadow-sm hover:shadow-md transition-all group animate-in slide-in-from-top-4 duration-300">
+                  <div className="p-6 md:p-8 relative">
+                    {isAdmin && (
+                      <button 
+                        onClick={() => handleDeletePost(post.id)}
+                        className="absolute top-6 right-6 p-2 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                        title="Remove Post (Admin)"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                    
+                    <div className="flex items-center gap-4 mb-6">
+                      <img src={post.avatar} className="w-12 h-12 rounded-full border border-stone-100 object-cover shadow-sm" alt={post.author} />
+                      <div>
+                        <h4 className="font-bold text-stone-900 flex items-center gap-2">
+                          {post.author}
+                          {post.author.includes('Admin') && (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full font-bold uppercase tracking-wider">Staff</span>
+                          )}
+                        </h4>
+                        <p className="text-stone-400 text-xs">{post.time}</p>
+                      </div>
+                    </div>
+                    <p className="text-stone-700 leading-relaxed mb-6 text-lg serif whitespace-pre-wrap">
+                      {post.content}
+                    </p>
+                    
+                    <div className="flex flex-wrap gap-4 md:gap-8 pt-4 border-t border-stone-100 text-stone-500">
+                      <button 
+                        onClick={() => handleInteraction(post.id, 'like')}
+                        className={`flex items-center gap-2 transition-all active:scale-90 ${isLiked ? 'text-amber-600' : 'hover:text-amber-600'}`}
+                      >
+                        <ThumbsUp size={18} className={isLiked ? 'fill-amber-600' : ''} />
+                        <span className="text-sm font-medium">{post.likes > 0 ? post.likes : 'Like'}</span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleInteraction(post.id, 'love')}
+                        className={`flex items-center gap-2 transition-all active:scale-90 ${isLoved ? 'text-rose-600' : 'hover:text-rose-600'}`}
+                      >
+                        <Heart size={18} className={isLoved ? 'fill-rose-600 animate-pulse' : ''} />
+                        <span className="text-sm font-medium">{post.loves > 0 ? post.loves : 'Love'}</span>
+                      </button>
+
+                      <button 
+                        onClick={() => setOpenCommentId(isCommentsOpen ? null : post.id)}
+                        className={`flex items-center gap-2 transition-colors ${isCommentsOpen ? 'text-amber-600' : 'hover:text-amber-600'}`}
+                      >
+                        <MessageSquare size={18} className={isCommentsOpen ? 'fill-amber-50' : ''} />
+                        <span className="text-sm font-medium">{post.comments > 0 ? post.comments : 'Comment'}</span>
+                      </button>
+
+                      <button 
+                        onClick={() => handleShare(post.id)}
+                        className={`flex items-center gap-2 transition-all ml-auto ${isSharing ? 'text-emerald-600' : 'hover:text-amber-600'}`}
+                      >
+                        {isSharing ? (
+                          <span className="text-xs font-bold animate-in fade-in zoom-in">Link Copied!</span>
+                        ) : (
+                          <>
+                            <Share2 size={18} />
+                            <span className="text-sm font-medium">{post.shares > 0 ? post.shares : 'Share'}</span>
+                          </>
                         )}
-                      </h4>
-                      <p className="text-stone-400 text-xs">{post.time}</p>
+                      </button>
                     </div>
                   </div>
-                  <p className="text-stone-700 leading-relaxed mb-6 text-lg serif whitespace-pre-wrap">
-                    {post.content}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-4 md:gap-8 pt-4 border-t border-stone-100 text-stone-500">
-                    <button 
-                      onClick={() => handleInteraction(post.id, 'like')}
-                      className={`flex items-center gap-2 transition-all active:scale-90 ${isLiked ? 'text-amber-600' : 'hover:text-amber-600'}`}
-                    >
-                      <ThumbsUp size={18} className={isLiked ? 'fill-amber-600' : ''} />
-                      <span className="text-sm font-medium">{post.likes > 0 ? post.likes : 'Like'}</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleInteraction(post.id, 'love')}
-                      className={`flex items-center gap-2 transition-all active:scale-90 ${isLoved ? 'text-rose-600' : 'hover:text-rose-600'}`}
-                    >
-                      <Heart size={18} className={isLoved ? 'fill-rose-600 animate-pulse' : ''} />
-                      <span className="text-sm font-medium">{post.loves > 0 ? post.loves : 'Love'}</span>
-                    </button>
 
-                    <button className="flex items-center gap-2 hover:text-amber-600 transition-colors">
-                      <MessageSquare size={18} />
-                      <span className="text-sm font-medium">{post.comments > 0 ? post.comments : 'Comment'}</span>
-                    </button>
+                  {/* Comment Section */}
+                  {isCommentsOpen && (
+                    <div className="bg-stone-50 border-t border-stone-100 p-6 md:px-8 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-4 mb-6">
+                        {post.commentsList && post.commentsList.length > 0 ? (
+                          post.commentsList.map(comment => (
+                            <div key={comment.id} className="flex gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${comment.isAdmin ? 'bg-amber-600 text-white' : 'bg-stone-200 text-stone-500'}`}>
+                                {comment.author.charAt(0)}
+                              </div>
+                              <div className="bg-white p-3 rounded-2xl border border-stone-200 shadow-sm flex-1">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="text-xs font-bold text-stone-900">{comment.author}</span>
+                                  <span className="text-[10px] text-stone-400">{comment.time}</span>
+                                </div>
+                                <p className="text-sm text-stone-700 leading-relaxed">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-center py-4 text-xs text-stone-400 italic">No comments yet. Be the first to share your thoughts!</p>
+                        )}
+                      </div>
 
-                    <button 
-                      onClick={() => handleShare(post.id)}
-                      className={`flex items-center gap-2 transition-all ml-auto ${isSharing ? 'text-emerald-600' : 'hover:text-amber-600'}`}
-                    >
-                      {isSharing ? (
-                        <span className="text-xs font-bold animate-in fade-in zoom-in">Link Copied!</span>
-                      ) : (
-                        <>
-                          <Share2 size={18} />
-                          <span className="text-sm font-medium">{post.shares > 0 ? post.shares : 'Share'}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                      <div className="flex gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${isAdmin ? 'bg-amber-600 text-white' : 'bg-stone-200 text-stone-500'}`}>
+                          {isAdmin ? 'A' : 'M'}
+                        </div>
+                        <div className="flex-1 relative">
+                          <input 
+                            type="text"
+                            value={newCommentText[post.id] || ''}
+                            onChange={(e) => setNewCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit(post.id)}
+                            placeholder="Add a comment..."
+                            className="w-full pl-4 pr-10 py-2 bg-white border border-stone-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                          />
+                          <button 
+                            onClick={() => handleCommentSubmit(post.id)}
+                            disabled={!(newCommentText[post.id]?.trim())}
+                            className="absolute right-2 top-1.5 p-1 text-amber-600 hover:bg-amber-50 rounded-full transition-all disabled:opacity-30"
+                          >
+                            <Send size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </article>
               );
             })
