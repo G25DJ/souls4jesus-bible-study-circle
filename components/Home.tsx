@@ -15,7 +15,8 @@ import {
   X, 
   Plus, 
   Trash2,
-  FileText
+  FileText,
+  CalendarDays
 } from 'lucide-react';
 
 interface HomeProps {
@@ -31,17 +32,13 @@ interface MeetingInfo {
 }
 
 const DEFAULT_MEETING: MeetingInfo = {
-  time: '7:00 PM',
-  topic: 'Book of James, Chapter 1',
-  whatsappLink: 'https://chat.whatsapp.com/CedwGPg5qByF4Bg55nirSX',
-  discordLink: 'https://discord.gg/aQVB4uUF'
+  time: '',
+  topic: '',
+  whatsappLink: '',
+  discordLink: ''
 };
 
-const DEFAULT_RESOURCES: Resource[] = [
-  { id: '1', title: 'New Testament Overview', type: 'PDF', link: '#' },
-  { id: '2', title: 'Guided Prayer - Peace', type: 'MP3', link: '#' },
-  { id: '3', title: 'Prayer Request Form', type: 'DOC', link: '#' }
-];
+const DEFAULT_RESOURCES: Resource[] = [];
 
 const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
   const [verse, setVerse] = useState<DailyVerse | null>(null);
@@ -129,6 +126,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
   const updateResource = (id: string, updates: Partial<Resource>) => {
     setEditResourceList(editResourceList.map(r => r.id === id ? { ...r, ...updates } : r));
   };
+
+  const isMeetingScheduled = meetingInfo.time || meetingInfo.topic;
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
@@ -260,7 +259,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
 
         <div className="space-y-6">
           {/* Meeting Section */}
-          <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100 relative group">
+          <div className="bg-amber-50 rounded-3xl p-8 border border-amber-100 relative group min-h-[200px] flex flex-col">
             {isAdmin && !isEditingMeeting && (
               <button 
                 onClick={() => { setEditMeetingValues(meetingInfo); setIsEditingMeeting(true); }}
@@ -271,7 +270,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
               </button>
             )}
 
-            <h3 className="text-xl font-bold mb-4 text-amber-900 serif">Join Tonight's Meeting</h3>
+            <h3 className="text-xl font-bold mb-4 text-amber-900 serif">Group Meeting</h3>
             
             {isEditingMeeting ? (
               <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
@@ -280,14 +279,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                   value={editMeetingValues.time}
                   onChange={e => setEditMeetingValues({...editMeetingValues, time: e.target.value})}
                   className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder="Time"
+                  placeholder="Meeting Time (e.g. 7:00 PM)"
                 />
                 <input 
                   type="text" 
                   value={editMeetingValues.topic}
                   onChange={e => setEditMeetingValues({...editMeetingValues, topic: e.target.value})}
                   className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder="Topic"
+                  placeholder="Tonight's Topic"
                 />
                 <input 
                   type="text" 
@@ -308,33 +307,34 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                   <button onClick={() => setIsEditingMeeting(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200"><X size={14} /></button>
                 </div>
               </div>
-            ) : (
+            ) : isMeetingScheduled ? (
               <>
-                <p className="text-amber-800/80 text-sm mb-6">
-                  We are meeting at <span className="font-bold text-amber-900">{meetingInfo.time}</span> to discuss the <span className="font-bold text-amber-900">{meetingInfo.topic}</span>. Choose your platform:
+                <p className="text-amber-800/80 text-sm mb-6 leading-relaxed">
+                  We are meeting at <span className="font-bold text-amber-900">{meetingInfo.time}</span> to discuss <span className="font-bold text-amber-900">{meetingInfo.topic}</span>.
                 </p>
-                <div className="flex -space-x-2 mb-8">
-                  {[1, 2, 3, 4].map((i) => (
-                    <img key={i} className="w-10 h-10 rounded-full border-2 border-white object-cover" src={`https://picsum.photos/seed/${i + 10}/100/100`} alt="Member" />
-                  ))}
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-200 flex items-center justify-center text-amber-700 text-xs font-bold shadow-sm">
-                    +12
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <a href={meetingInfo.whatsappLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline">
-                    <MessageCircle size={20} /> WhatsApp Group
-                  </a>
-                  <a href={meetingInfo.discordLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline">
-                    <MessageSquare size={20} /> Discord Server
-                  </a>
+                <div className="space-y-3 mt-auto">
+                  {meetingInfo.whatsappLink && (
+                    <a href={meetingInfo.whatsappLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                      <MessageCircle size={20} /> WhatsApp
+                    </a>
+                  )}
+                  {meetingInfo.discordLink && (
+                    <a href={meetingInfo.discordLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                      <MessageSquare size={20} /> Discord
+                    </a>
+                  )}
                 </div>
               </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                <CalendarDays size={32} className="text-amber-200 mb-2" />
+                <p className="text-amber-700/60 text-xs italic">No meetings scheduled. Click the edit icon to add details.</p>
+              </div>
             )}
           </div>
 
           {/* Quick Resources Section */}
-          <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm relative group">
+          <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm relative group min-h-[150px]">
             {isAdmin && !isEditingResources && (
               <button 
                 onClick={() => { setEditResourceList(resources); setIsEditingResources(true); }}
@@ -379,7 +379,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                     </div>
                   ))}
                 </div>
-                <button onClick={addResource} className="w-full py-2 border border-dashed border-stone-300 rounded-xl text-stone-400 text-xs flex items-center justify-center gap-1 hover:bg-stone-50"><Plus size={14} /> Add Resource</button>
+                <button onClick={addResource} className="w-full py-2 border border-dashed border-stone-300 rounded-xl text-stone-400 text-xs flex items-center justify-center gap-1 hover:bg-stone-50 transition-colors"><Plus size={14} /> Add Resource</button>
                 <div className="flex gap-2 pt-2">
                   <button onClick={handleSaveResources} className="flex-1 py-2 bg-stone-900 text-white rounded-lg font-bold text-xs"><Check size={14} className="inline mr-1" /> Save</button>
                   <button onClick={() => setIsEditingResources(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200"><X size={14} /></button>
@@ -397,7 +397,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                     </a>
                   </li>
                 ))}
-                {resources.length === 0 && <p className="text-xs text-stone-400 italic">No resources added yet.</p>}
+                {resources.length === 0 && (
+                  <div className="py-8 text-center">
+                    <FileText size={24} className="mx-auto text-stone-200 mb-2" />
+                    <p className="text-xs text-stone-400 italic">No resources added yet.</p>
+                  </div>
+                )}
               </ul>
             )}
           </div>

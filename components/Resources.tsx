@@ -22,19 +22,13 @@ interface ResourcesProps {
 }
 
 const DEFAULT_CATEGORIES: ResourceCategory[] = [
-  { id: '1', title: 'Study Guides', iconType: 'file', items: 12 },
-  { id: '2', title: 'Video Series', iconType: 'video', items: 8 },
-  { id: '3', title: 'Audio Teachings', iconType: 'audio', items: 24 },
-  { id: '4', title: 'Commentaries', iconType: 'book', items: 5 },
+  { id: '1', title: 'Study Guides', iconType: 'file', items: 0 },
+  { id: '2', title: 'Video Series', iconType: 'video', items: 0 },
+  { id: '3', title: 'Audio Teachings', iconType: 'audio', items: 0 },
+  { id: '4', title: 'Commentaries', iconType: 'book', items: 0 },
 ];
 
-const DEFAULT_FILES: ResourceFile[] = [
-  { id: '1', name: 'Introduction to Genesis', type: 'PDF', size: '2.4 MB', category: 'Study Guides' },
-  { id: '2', name: 'The Sermon on the Mount - Part 1', type: 'MP4', size: '158 MB', category: 'Video Series' },
-  { id: '3', name: 'History of the Early Church', type: 'MP3', size: '12.5 MB', category: 'Audio Teachings' },
-  { id: '4', name: 'Understanding Grace', type: 'PDF', size: '1.1 MB', category: 'Study Guides' },
-  { id: '5', name: 'Weekly Prayer Template', type: 'DOCX', size: '45 KB', category: 'Study Guides' },
-];
+const DEFAULT_FILES: ResourceFile[] = [];
 
 const Resources: React.FC<ResourcesProps> = ({ isAdmin = false }) => {
   const [categories, setCategories] = useState<ResourceCategory[]>(() => {

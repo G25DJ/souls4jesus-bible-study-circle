@@ -17,7 +17,8 @@ import {
   X,
   ShieldCheck,
   ShieldAlert,
-  LogOut
+  LogOut,
+  RotateCcw
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -39,6 +40,19 @@ const App: React.FC = () => {
     localStorage.removeItem('s4j_admin_mode');
     if (activeTab === 'admin-login') {
       setActiveTab('home');
+    }
+  };
+
+  const handleResetData = () => {
+    if (window.confirm('Are you sure you want to reset all data? This will delete all custom circles, posts, resources, and settings, returning the site to its original state.')) {
+      // Clear all keys starting with s4j_
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('s4j_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      // Force reload to pick up defaults
+      window.location.reload();
     }
   };
 
@@ -171,23 +185,34 @@ const App: React.FC = () => {
             <a href="#" className="hover:text-amber-600 transition-colors">Contact Us</a>
           </div>
           
-          {isAdmin ? (
-            <button 
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-bold hover:bg-rose-100 transition-all shadow-sm"
-            >
-              <ShieldCheck size={14} />
-              Admin Mode: ON (Logout)
-            </button>
-          ) : (
-            <button 
-              onClick={() => setActiveTab('admin-login')}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-200 text-stone-600 border border-stone-300 rounded-full text-xs font-bold hover:bg-stone-300 hover:text-stone-900 transition-all shadow-sm"
-            >
-              <ShieldAlert size={14} />
-              Admin Login
-            </button>
-          )}
+          <div className="flex flex-col md:flex-row justify-center items-center gap-4">
+            {isAdmin ? (
+              <>
+                <button 
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full text-xs font-bold hover:bg-rose-100 transition-all shadow-sm"
+                >
+                  <ShieldCheck size={14} />
+                  Admin Mode: ON (Logout)
+                </button>
+                <button 
+                  onClick={handleResetData}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-white text-stone-500 border border-stone-200 rounded-full text-xs font-bold hover:bg-stone-50 hover:text-rose-600 transition-all shadow-sm"
+                >
+                  <RotateCcw size={14} />
+                  Reset All Data
+                </button>
+              </>
+            ) : (
+              <button 
+                onClick={() => setActiveTab('admin-login')}
+                className="inline-flex items-center gap-2 px-6 py-2.5 bg-stone-200 text-stone-600 border border-stone-300 rounded-full text-xs font-bold hover:bg-stone-300 hover:text-stone-900 transition-all shadow-sm"
+              >
+                <ShieldAlert size={14} />
+                Admin Login
+              </button>
+            )}
+          </div>
         </div>
       </footer>
     </div>
