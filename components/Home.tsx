@@ -32,7 +32,7 @@ interface MeetingInfo {
 
 // Non-changeable Community Links - Visible to all users
 const PERMANENT_WHATSAPP = "https://chat.whatsapp.com/CedwGPg5qByF4Bg55nirSX";
-const PERMANENT_DISCORD = "https://discord.gg/aQVB4uUFf";
+const PERMANENT_DISCORD = "https://discord.gg/sw2TA96M3X";
 
 const DEFAULT_MEETING: MeetingInfo = {
   time: '',

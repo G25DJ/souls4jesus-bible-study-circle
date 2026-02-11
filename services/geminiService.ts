@@ -16,18 +16,6 @@ const FALLBACK_VERSES: DailyVerse[] = [
     text: "Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.",
     reflection: "We often try to figure everything out on our own. This verse reminds us that true peace comes from surrender and trusting in the divine wisdom that sees the whole map when we only see the next step.",
     prayer: "Father, I surrender my worries and my plans to You. Guide my steps and keep my heart aligned with Your will."
-  },
-  {
-    reference: "Isaiah 41:10",
-    text: "So do not fear, for I am with you; do not be dismayed, for I am your God. I will strengthen you and help you; I will uphold you with my righteous right hand.",
-    reflection: "Fear is a powerful emotion, but God's presence is more powerful. Knowing that the Creator of the universe is holding your hand changes your perspective on any challenge.",
-    prayer: "Heavenly Father, replace my fear with Your peace. Thank You for being my constant source of strength."
-  },
-  {
-    reference: "Matthew 11:28",
-    text: "Come to me, all you who are weary and burdened, and I will give you rest.",
-    reflection: "The world demands constant hustle, but Jesus offers a different rhythm. He invites us to lay down our heavy packs and find true soul-rest in His grace.",
-    prayer: "Lord, I come to You today feeling tired. I accept Your invitation to rest and be renewed by Your Spirit."
   }
 ];
 
@@ -59,8 +47,7 @@ export const getDailyVerse = async (theme?: string): Promise<DailyVerse> => {
     if (!parsed.reference || !parsed.text) throw new Error("Invalid API response");
     return parsed;
   } catch (error) {
-    console.warn("Gemini API error (likely quota). Using fallback verse.", error);
-    // Return a random verse from the fallback list
+    console.warn("Gemini API error. Using fallback verse.", error);
     const randomIndex = Math.floor(Math.random() * FALLBACK_VERSES.length);
     return FALLBACK_VERSES[randomIndex];
   }
@@ -101,7 +88,7 @@ export const generateStudyPlan = async (topic: string): Promise<StudyPlan> => {
     return JSON.parse(response.text || '{}');
   } catch (error) {
     console.error("Failed to generate plan", error);
-    throw new Error("I'm sorry, our wisdom engine is currently resting. Please try again in a few minutes.");
+    throw new Error("Service currently unavailable.");
   }
 };
 
@@ -110,13 +97,52 @@ export const askBibleQuestion = async (question: string, context?: string): Prom
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are a helpful and wise Bible study assistant. Please answer this question from a biblical perspective: "${question}". ${context ? `Consider the following context: ${context}` : ''}`,
-      config: {
-        temperature: 0.7,
-      },
+      config: { temperature: 0.7 },
     });
     return response.text || "I'm sorry, I couldn't process that question right now.";
   } catch (error) {
-    console.error("AskAI Error:", error);
-    return "The AI assistant is currently experiencing high volume. Please search your heart and your scriptures while we reconnect the service.";
+    return "The AI assistant is currently experiencing high volume.";
+  }
+};
+
+export const seedCommunityContent = async (): Promise<{ posts: any[], prayers: any[] }> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Generate 3 inspiring community posts and 3 prayer requests for a Bible study group. The posts should feel like they come from real people sharing their faith.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            posts: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  author: { type: Type.STRING },
+                  content: { type: Type.STRING },
+                  likes: { type: Type.NUMBER },
+                }
+              }
+            },
+            prayers: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  author: { type: Type.STRING },
+                  content: { type: Type.STRING },
+                  prayingCount: { type: Type.NUMBER },
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    return JSON.parse(response.text || '{"posts": [], "prayers": []}');
+  } catch (error) {
+    return { posts: [], prayers: [] };
   }
 };
