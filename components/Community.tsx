@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, Share2, ThumbsUp, PlusCircle, Edit2, Check, X, Trash2, Send } from 'lucide-react';
+import { MessageSquare, Heart, Share2, ThumbsUp, PlusCircle, Edit2, Check, X, Trash2, Send, Loader2 } from 'lucide-react';
 import { Circle } from '../types';
 
 interface CommunityProps {
@@ -14,14 +14,13 @@ interface Post {
   time: string;
   content: string;
   likes: number;
+  loves: number;
+  shares: number;
   comments: number;
   timestamp: number;
 }
 
-const DEFAULT_CIRCLES: Circle[] = [
-  { id: '1', name: 'Souls4Jesus Main Circle', members: 128, initial: 'S', color: 'bg-amber-100 text-amber-600' },
-  { id: '2', name: "Men's Bible Study", members: 32, initial: 'M', color: 'bg-stone-100 text-stone-400' }
-];
+const DEFAULT_CIRCLES: Circle[] = [];
 
 const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
   const [circles, setCircles] = useState<Circle[]>(() => {
@@ -38,18 +37,28 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
   });
   const [newPostContent, setNewPostContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
-  // Sync posts to localStorage
+  // Tracking user reactions locally (to simulate real user state)
+  const [userReactions, setUserReactions] = useState<{ [postId: string]: { liked?: boolean, loved?: boolean } }>(() => {
+    const saved = localStorage.getItem('s4j_user_reactions');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem('s4j_community_posts', JSON.stringify(posts));
   }, [posts]);
+
+  useEffect(() => {
+    localStorage.setItem('s4j_user_reactions', JSON.stringify(userReactions));
+  }, [userReactions]);
 
   const handlePostSubmit = () => {
     if (!newPostContent.trim()) return;
     
     setIsPosting(true);
     
-    // Simulate a brief delay for "saving" effect
     setTimeout(() => {
       const newPost: Post = {
         id: Date.now().toString(),
@@ -58,6 +67,8 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
         time: 'Just now',
         content: newPostContent,
         likes: 0,
+        loves: 0,
+        shares: 0,
         comments: 0,
         timestamp: Date.now()
       };
@@ -66,6 +77,45 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
       setNewPostContent('');
       setIsPosting(false);
     }, 400);
+  };
+
+  const handleInteraction = (postId: string, type: 'like' | 'love') => {
+    const isLiked = userReactions[postId]?.liked;
+    const isLoved = userReactions[postId]?.loved;
+
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        if (type === 'like') {
+          return { ...post, likes: isLiked ? Math.max(0, post.likes - 1) : post.likes + 1 };
+        } else {
+          return { ...post, loves: isLoved ? Math.max(0, post.loves - 1) : post.loves + 1 };
+        }
+      }
+      return post;
+    }));
+
+    setUserReactions(prev => ({
+      ...prev,
+      [postId]: {
+        ...prev[postId],
+        [type === 'like' ? 'liked' : 'loved']: type === 'like' ? !isLiked : !isLoved
+      }
+    }));
+  };
+
+  const handleShare = (postId: string) => {
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return { ...post, shares: post.shares + 1 };
+      }
+      return post;
+    }));
+
+    // Mock share functionality
+    navigator.clipboard.writeText(`${window.location.origin}/post/${postId}`).then(() => {
+      setShareFeedback(postId);
+      setTimeout(() => setShareFeedback(null), 2000);
+    });
   };
 
   const handleDeletePost = (id: string) => {
@@ -176,7 +226,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
                 </div>
               ))}
               {circles.length === 0 && <p className="text-xs text-stone-400 italic text-center py-2">No active circles.</p>}
-              <button className="w-full py-2 border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2 mt-2">
+              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2 mt-2">
                 <PlusCircle size={14} /> Create New Circle
               </button>
             </div>
@@ -185,7 +235,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
 
         <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100">
           <h3 className="font-bold text-amber-900 mb-4 serif">Prayer Chain</h3>
-          <p className="text-amber-800/70 text-sm mb-4 leading-relaxed">Join 8 active prayer requests in your circle today.</p>
+          <p className="text-amber-800/70 text-sm mb-4 leading-relaxed">Join 0 active prayer requests in your circle today.</p>
           <button className="w-full py-3 bg-white text-amber-700 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95">
             Join the Prayer Chain
           </button>
@@ -208,16 +258,14 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
               ></textarea>
               <div className="flex justify-between items-center mt-4">
                 <div className="flex gap-2">
-                  <button className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all" title="Attach Image (Coming Soon)">
-                    <Share2 size={18} />
-                  </button>
+                  {/* Additional attachments icon - simplified for now */}
                 </div>
                 <button 
                   onClick={handlePostSubmit}
                   disabled={!newPostContent.trim() || isPosting}
                   className="px-8 py-3 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isPosting ? <RefreshCw size={18} className="animate-spin" /> : <Send size={18} />}
+                  {isPosting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                   Post to Circle
                 </button>
               </div>
@@ -233,75 +281,83 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
               <p className="text-stone-300 text-sm">Be the first to share a reflection or word of encouragement.</p>
             </div>
           ) : (
-            posts.map(post => (
-              <article key={post.id} className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200 shadow-sm hover:shadow-md transition-all group relative animate-in slide-in-from-top-4 duration-300">
-                {isAdmin && (
-                  <button 
-                    onClick={() => handleDeletePost(post.id)}
-                    className="absolute top-6 right-6 p-2 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
-                    title="Remove Post (Admin)"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-                
-                <div className="flex items-center gap-4 mb-6">
-                  <img src={post.avatar} className="w-12 h-12 rounded-full border border-stone-100 object-cover shadow-sm" alt={post.author} />
-                  <div>
-                    <h4 className="font-bold text-stone-900 flex items-center gap-2">
-                      {post.author}
-                      {post.author.includes('Admin') && (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full font-bold uppercase tracking-wider">Staff</span>
-                      )}
-                    </h4>
-                    <p className="text-stone-400 text-xs">{post.time}</p>
+            posts.map(post => {
+              const isLiked = userReactions[post.id]?.liked;
+              const isLoved = userReactions[post.id]?.loved;
+              const isSharing = shareFeedback === post.id;
+
+              return (
+                <article key={post.id} className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200 shadow-sm hover:shadow-md transition-all group relative animate-in slide-in-from-top-4 duration-300">
+                  {isAdmin && (
+                    <button 
+                      onClick={() => handleDeletePost(post.id)}
+                      className="absolute top-6 right-6 p-2 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                      title="Remove Post (Admin)"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  
+                  <div className="flex items-center gap-4 mb-6">
+                    <img src={post.avatar} className="w-12 h-12 rounded-full border border-stone-100 object-cover shadow-sm" alt={post.author} />
+                    <div>
+                      <h4 className="font-bold text-stone-900 flex items-center gap-2">
+                        {post.author}
+                        {post.author.includes('Admin') && (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full font-bold uppercase tracking-wider">Staff</span>
+                        )}
+                      </h4>
+                      <p className="text-stone-400 text-xs">{post.time}</p>
+                    </div>
                   </div>
-                </div>
-                <p className="text-stone-700 leading-relaxed mb-6 text-lg serif whitespace-pre-wrap">
-                  {post.content}
-                </p>
-                <div className="flex gap-6 pt-4 border-t border-stone-100 text-stone-500">
-                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors group/btn">
-                    <ThumbsUp size={18} className="group-hover/btn:fill-amber-50" />
-                    <span className="text-sm">{post.likes > 0 ? post.likes : 'Like'}</span>
-                  </button>
-                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors">
-                    <MessageSquare size={18} />
-                    <span className="text-sm">{post.comments > 0 ? post.comments : 'Comment'}</span>
-                  </button>
-                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors ml-auto">
-                    <Share2 size={18} />
-                    <span className="text-sm">Share</span>
-                  </button>
-                </div>
-              </article>
-            ))
+                  <p className="text-stone-700 leading-relaxed mb-6 text-lg serif whitespace-pre-wrap">
+                    {post.content}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-4 md:gap-8 pt-4 border-t border-stone-100 text-stone-500">
+                    <button 
+                      onClick={() => handleInteraction(post.id, 'like')}
+                      className={`flex items-center gap-2 transition-all active:scale-90 ${isLiked ? 'text-amber-600' : 'hover:text-amber-600'}`}
+                    >
+                      <ThumbsUp size={18} className={isLiked ? 'fill-amber-600' : ''} />
+                      <span className="text-sm font-medium">{post.likes > 0 ? post.likes : 'Like'}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleInteraction(post.id, 'love')}
+                      className={`flex items-center gap-2 transition-all active:scale-90 ${isLoved ? 'text-rose-600' : 'hover:text-rose-600'}`}
+                    >
+                      <Heart size={18} className={isLoved ? 'fill-rose-600 animate-pulse' : ''} />
+                      <span className="text-sm font-medium">{post.loves > 0 ? post.loves : 'Love'}</span>
+                    </button>
+
+                    <button className="flex items-center gap-2 hover:text-amber-600 transition-colors">
+                      <MessageSquare size={18} />
+                      <span className="text-sm font-medium">{post.comments > 0 ? post.comments : 'Comment'}</span>
+                    </button>
+
+                    <button 
+                      onClick={() => handleShare(post.id)}
+                      className={`flex items-center gap-2 transition-all ml-auto ${isSharing ? 'text-emerald-600' : 'hover:text-amber-600'}`}
+                    >
+                      {isSharing ? (
+                        <span className="text-xs font-bold animate-in fade-in zoom-in">Link Copied!</span>
+                      ) : (
+                        <>
+                          <Share2 size={18} />
+                          <span className="text-sm font-medium">{post.shares > 0 ? post.shares : 'Share'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </article>
+              );
+            })
           )}
         </div>
       </section>
     </div>
   );
 };
-
-// Required for the RefreshCw icon used in the posting state
-const RefreshCw = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-    <path d="M21 3v5h-5" />
-    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-    <path d="M3 21v-5h5" />
-  </svg>
-);
 
 export default Community;
