@@ -35,4 +35,4 @@ export interface Circle {
   color: string;
 }
 
-export type Tab = 'home' | 'planner' | 'ask' | 'community' | 'resources' | 'admin-login';
+export type Tab = 'home' | 'community' | 'resources' | 'admin-login';

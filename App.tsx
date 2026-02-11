@@ -2,15 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Tab } from './types';
 import Home from './components/Home';
-import Planner from './components/Planner';
-import AskAI from './components/AskAI';
 import Community from './components/Community';
 import Resources from './components/Resources';
 import AdminLogin from './components/AdminLogin';
 import { 
   Home as HomeIcon, 
-  Calendar, 
-  MessageCircle, 
   Users, 
   BookOpen, 
   Menu, 
@@ -45,34 +41,28 @@ const App: React.FC = () => {
 
   const handleResetData = () => {
     if (window.confirm('Are you sure you want to reset all data? This will delete all custom circles, posts, resources, and settings, returning the site to its original state.')) {
-      // Clear all keys starting with s4j_
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('s4j_')) {
           localStorage.removeItem(key);
         }
       });
-      // Force reload to pick up defaults
       window.location.reload();
     }
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Home', icon: <HomeIcon size={20} /> },
-    { id: 'planner', label: 'Study Planner', icon: <Calendar size={20} /> },
-    { id: 'ask', label: 'Ask AI Assistant', icon: <MessageCircle size={20} /> },
     { id: 'community', label: 'Community', icon: <Users size={20} /> },
     { id: 'resources', label: 'Resources', icon: <BookOpen size={20} /> },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home': return <Home onNavigate={(t) => setActiveTab(t)} isAdmin={isAdmin} />;
-      case 'planner': return <Planner />;
-      case 'ask': return <AskAI />;
+      case 'home': return <Home onNavigate={(t) => setActiveTab(t as Tab)} isAdmin={isAdmin} />;
       case 'community': return <Community isAdmin={isAdmin} />;
       case 'resources': return <Resources isAdmin={isAdmin} />;
-      case 'admin-login': return <AdminLogin onLogin={handleAdminLogin} onNavigate={setActiveTab} />;
-      default: return <Home onNavigate={(t) => setActiveTab(t)} isAdmin={isAdmin} />;
+      case 'admin-login': return <AdminLogin onLogin={handleAdminLogin} onNavigate={(t) => setActiveTab(t as Tab)} />;
+      default: return <Home onNavigate={(t) => setActiveTab(t as Tab)} isAdmin={isAdmin} />;
     }
   };
 
