@@ -37,7 +37,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
     return saved ? JSON.parse(saved) : DEFAULT_CIRCLES;
   });
   const [isEditingCircles, setIsEditingCircles] = useState(false);
-  const [editCirclesList, setEditCirclesList] = useState<Circle[]>(circles);
+  const [editCirclesList, setEditCirclesList] = useState<Circle[]>([]);
   
   // Post State
   const [posts, setPosts] = useState<Post[]>(() => {
@@ -170,6 +170,11 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
     setIsEditingCircles(false);
   };
 
+  const startEditingCircles = () => {
+    setEditCirclesList(circles);
+    setIsEditingCircles(true);
+  };
+
   const addCircle = () => {
     const newCircle: Circle = {
       id: Date.now().toString(),
@@ -178,7 +183,14 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
       initial: 'N',
       color: 'bg-stone-100 text-stone-400'
     };
-    setEditCirclesList([...editCirclesList, newCircle]);
+    
+    // If we aren't editing, start editing with existing circles plus the new one
+    if (!isEditingCircles) {
+      setEditCirclesList([...circles, newCircle]);
+      setIsEditingCircles(true);
+    } else {
+      setEditCirclesList([...editCirclesList, newCircle]);
+    }
   };
 
   const removeCircle = (id: string) => {
@@ -205,7 +217,7 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
         <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm relative group">
           {isAdmin && !isEditingCircles && (
             <button 
-              onClick={() => { setEditCirclesList(circles); setIsEditingCircles(true); }}
+              onClick={startEditingCircles}
               className="absolute top-4 right-4 p-2 text-stone-400 hover:text-amber-600 rounded-full transition-all"
               title="Edit Circles"
             >
@@ -228,10 +240,11 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
                         type="text" 
                         value={circle.name}
                         onChange={e => updateCircle(circle.id, { name: e.target.value })}
-                        className="flex-1 bg-white border border-stone-200 rounded px-2 py-1 text-xs font-bold"
+                        className="flex-1 bg-white border border-stone-200 rounded px-2 py-1 text-xs font-bold focus:ring-1 focus:ring-amber-500 outline-none transition-all"
                         placeholder="Circle Name"
+                        autoFocus
                       />
-                      <button onClick={() => removeCircle(circle.id)} className="text-rose-500 p-1 hover:bg-rose-50 rounded"><Trash2 size={14} /></button>
+                      <button onClick={() => removeCircle(circle.id)} className="text-rose-500 p-1 hover:bg-rose-50 rounded transition-colors"><Trash2 size={14} /></button>
                     </div>
                     <div className="flex items-center gap-2">
                       <label className="text-[10px] uppercase font-bold text-stone-400">Members:</label>
@@ -239,23 +252,25 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
                         type="number" 
                         value={circle.members}
                         onChange={e => updateCircle(circle.id, { members: parseInt(e.target.value) || 0 })}
-                        className="w-16 bg-white border border-stone-200 rounded px-2 py-1 text-xs"
+                        className="w-16 bg-white border border-stone-200 rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
                 ))}
               </div>
-              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-xl text-stone-400 text-xs flex items-center justify-center gap-1 hover:bg-stone-50"><PlusCircle size={14} /> Add Circle</button>
+              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-xl text-stone-400 text-xs flex items-center justify-center gap-1 hover:bg-stone-50 transition-colors">
+                <PlusCircle size={14} /> Add Another Circle
+              </button>
               <div className="flex gap-2 pt-2 border-t border-stone-100">
-                <button onClick={handleSaveCircles} className="flex-1 py-2 bg-stone-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1"><Check size={14} /> Save</button>
-                <button onClick={() => setIsEditingCircles(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200"><X size={14} /></button>
+                <button onClick={handleSaveCircles} className="flex-1 py-2 bg-stone-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 hover:bg-stone-800 transition-colors shadow-sm"><Check size={14} /> Save</button>
+                <button onClick={() => setIsEditingCircles(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200 hover:bg-stone-50 transition-colors"><X size={14} /></button>
               </div>
             </div>
           ) : (
             <div className="space-y-4">
               {circles.map((circle) => (
                 <div key={circle.id} className="flex items-center gap-3 group/item cursor-pointer">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold transition-all group-hover/item:scale-110 ${circle.color}`}>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold transition-all group-hover/item:scale-110 shadow-sm ${circle.color}`}>
                     {circle.initial}
                   </div>
                   <div>
@@ -264,9 +279,9 @@ const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
                   </div>
                 </div>
               ))}
-              {circles.length === 0 && <p className="text-xs text-stone-400 italic text-center py-2">No active circles.</p>}
-              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2 mt-2">
-                <PlusCircle size={14} /> Create New Circle
+              {circles.length === 0 && <p className="text-xs text-stone-400 italic text-center py-2 animate-pulse">No active circles.</p>}
+              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2 mt-2 group/btn">
+                <PlusCircle size={14} className="group-hover/btn:scale-125 transition-transform" /> Create New Circle
               </button>
             </div>
           )}
