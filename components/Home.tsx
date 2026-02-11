@@ -31,11 +31,15 @@ interface MeetingInfo {
   discordLink: string;
 }
 
+// Non-changeable Community Links
+const PERMANENT_WHATSAPP = "https://chat.whatsapp.com/CedwGPg5qByF4Bg55nirSX";
+const PERMANENT_DISCORD = "https://discord.gg/aQVB4uUFf";
+
 const DEFAULT_MEETING: MeetingInfo = {
   time: '',
   topic: '',
-  whatsappLink: '',
-  discordLink: ''
+  whatsappLink: PERMANENT_WHATSAPP,
+  discordLink: PERMANENT_DISCORD
 };
 
 const DEFAULT_RESOURCES: Resource[] = [];
@@ -52,7 +56,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
   const [isEditingMeeting, setIsEditingMeeting] = useState(false);
   const [meetingInfo, setMeetingInfo] = useState<MeetingInfo>(() => {
     const saved = localStorage.getItem('s4j_meeting_info');
-    return saved ? JSON.parse(saved) : DEFAULT_MEETING;
+    const parsed = saved ? JSON.parse(saved) : DEFAULT_MEETING;
+    // Ensure permanent links are always set regardless of what's in storage
+    return { ...parsed, whatsappLink: PERMANENT_WHATSAPP, discordLink: PERMANENT_DISCORD };
   });
   const [editMeetingValues, setEditMeetingValues] = useState<MeetingInfo>(meetingInfo);
 
@@ -97,8 +103,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
   };
 
   const handleSaveMeeting = () => {
-    setMeetingInfo(editMeetingValues);
-    localStorage.setItem('s4j_meeting_info', JSON.stringify(editMeetingValues));
+    // Keep the permanent links safe
+    const updatedMeeting = { 
+      ...editMeetingValues, 
+      whatsappLink: PERMANENT_WHATSAPP, 
+      discordLink: PERMANENT_DISCORD 
+    };
+    setMeetingInfo(updatedMeeting);
+    localStorage.setItem('s4j_meeting_info', JSON.stringify(updatedMeeting));
     setIsEditingMeeting(false);
   };
 
@@ -274,6 +286,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
             
             {isEditingMeeting ? (
               <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                <label className="text-[10px] uppercase font-bold text-stone-400 ml-1">Time</label>
                 <input 
                   type="text" 
                   value={editMeetingValues.time}
@@ -281,6 +294,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                   className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
                   placeholder="Meeting Time (e.g. 7:00 PM)"
                 />
+                <label className="text-[10px] uppercase font-bold text-stone-400 ml-1">Topic</label>
                 <input 
                   type="text" 
                   value={editMeetingValues.topic}
@@ -288,20 +302,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                   className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
                   placeholder="Tonight's Topic"
                 />
-                <input 
-                  type="text" 
-                  value={editMeetingValues.whatsappLink}
-                  onChange={e => setEditMeetingValues({...editMeetingValues, whatsappLink: e.target.value})}
-                  className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder="WhatsApp Link"
-                />
-                <input 
-                  type="text" 
-                  value={editMeetingValues.discordLink}
-                  onChange={e => setEditMeetingValues({...editMeetingValues, discordLink: e.target.value})}
-                  className="w-full bg-white border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder="Discord Link"
-                />
+                <p className="text-[10px] text-stone-400 italic px-1 pt-1">
+                  Community links are permanent and managed by the organization.
+                </p>
                 <div className="flex gap-2 pt-2">
                   <button onClick={handleSaveMeeting} className="flex-1 py-2 bg-amber-600 text-white rounded-lg font-bold text-xs"><Check size={14} className="inline mr-1" /> Save</button>
                   <button onClick={() => setIsEditingMeeting(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200"><X size={14} /></button>
@@ -313,22 +316,26 @@ const Home: React.FC<HomeProps> = ({ onNavigate, isAdmin = false }) => {
                   We are meeting at <span className="font-bold text-amber-900">{meetingInfo.time}</span> to discuss <span className="font-bold text-amber-900">{meetingInfo.topic}</span>.
                 </p>
                 <div className="space-y-3 mt-auto">
-                  {meetingInfo.whatsappLink && (
-                    <a href={meetingInfo.whatsappLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
-                      <MessageCircle size={20} /> WhatsApp
-                    </a>
-                  )}
-                  {meetingInfo.discordLink && (
-                    <a href={meetingInfo.discordLink} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
-                      <MessageSquare size={20} /> Discord
-                    </a>
-                  )}
+                  <a href={PERMANENT_WHATSAPP} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                    <MessageCircle size={20} /> WhatsApp
+                  </a>
+                  <a href={PERMANENT_DISCORD} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                    <MessageSquare size={20} /> Discord
+                  </a>
                 </div>
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                 <CalendarDays size={32} className="text-amber-200 mb-2" />
-                <p className="text-amber-700/60 text-xs italic">No meetings scheduled. Click the edit icon to add details.</p>
+                <p className="text-amber-700/60 text-xs italic">No meetings scheduled. Community links are below:</p>
+                <div className="space-y-3 mt-4 w-full">
+                  <a href={PERMANENT_WHATSAPP} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                    <MessageCircle size={18} /> WhatsApp
+                  </a>
+                  <a href={PERMANENT_DISCORD} target="_blank" rel="noopener noreferrer" className="w-full py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold flex items-center justify-center gap-3 no-underline transition-all active:scale-95 shadow-sm">
+                    <MessageSquare size={18} /> Discord
+                  </a>
+                </div>
               </div>
             )}
           </div>
