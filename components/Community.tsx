@@ -1,0 +1,307 @@
+
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Heart, Share2, ThumbsUp, PlusCircle, Edit2, Check, X, Trash2, Send } from 'lucide-react';
+import { Circle } from '../types';
+
+interface CommunityProps {
+  isAdmin?: boolean;
+}
+
+interface Post {
+  id: string;
+  author: string;
+  avatar: string;
+  time: string;
+  content: string;
+  likes: number;
+  comments: number;
+  timestamp: number;
+}
+
+const DEFAULT_CIRCLES: Circle[] = [
+  { id: '1', name: 'Souls4Jesus Main Circle', members: 128, initial: 'S', color: 'bg-amber-100 text-amber-600' },
+  { id: '2', name: "Men's Bible Study", members: 32, initial: 'M', color: 'bg-stone-100 text-stone-400' }
+];
+
+const Community: React.FC<CommunityProps> = ({ isAdmin = false }) => {
+  const [circles, setCircles] = useState<Circle[]>(() => {
+    const saved = localStorage.getItem('s4j_circles');
+    return saved ? JSON.parse(saved) : DEFAULT_CIRCLES;
+  });
+  const [isEditingCircles, setIsEditingCircles] = useState(false);
+  const [editCirclesList, setEditCirclesList] = useState<Circle[]>(circles);
+  
+  // Post State
+  const [posts, setPosts] = useState<Post[]>(() => {
+    const saved = localStorage.getItem('s4j_community_posts');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newPostContent, setNewPostContent] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+
+  // Sync posts to localStorage
+  useEffect(() => {
+    localStorage.setItem('s4j_community_posts', JSON.stringify(posts));
+  }, [posts]);
+
+  const handlePostSubmit = () => {
+    if (!newPostContent.trim()) return;
+    
+    setIsPosting(true);
+    
+    // Simulate a brief delay for "saving" effect
+    setTimeout(() => {
+      const newPost: Post = {
+        id: Date.now().toString(),
+        author: isAdmin ? 'Admin Shepherd' : 'Community Member',
+        avatar: `https://picsum.photos/seed/${Date.now()}/100/100`,
+        time: 'Just now',
+        content: newPostContent,
+        likes: 0,
+        comments: 0,
+        timestamp: Date.now()
+      };
+      
+      setPosts([newPost, ...posts]);
+      setNewPostContent('');
+      setIsPosting(false);
+    }, 400);
+  };
+
+  const handleDeletePost = (id: string) => {
+    if (!isAdmin) return;
+    if (window.confirm('Are you sure you want to remove this post from the community circle?')) {
+      setPosts(posts.filter(p => p.id !== id));
+    }
+  };
+
+  const handleSaveCircles = () => {
+    setCircles(editCirclesList);
+    localStorage.setItem('s4j_circles', JSON.stringify(editCirclesList));
+    setIsEditingCircles(false);
+  };
+
+  const addCircle = () => {
+    const newCircle: Circle = {
+      id: Date.now().toString(),
+      name: 'New Circle',
+      members: 0,
+      initial: 'N',
+      color: 'bg-stone-100 text-stone-400'
+    };
+    setEditCirclesList([...editCirclesList, newCircle]);
+  };
+
+  const removeCircle = (id: string) => {
+    setEditCirclesList(editCirclesList.filter(c => c.id !== id));
+  };
+
+  const updateCircle = (id: string, updates: Partial<Circle>) => {
+    setEditCirclesList(editCirclesList.map(c => {
+      if (c.id === id) {
+        const next = { ...c, ...updates };
+        if (updates.name) {
+          next.initial = updates.name.charAt(0).toUpperCase();
+        }
+        return next;
+      }
+      return c;
+    }));
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto grid md:grid-cols-4 gap-8 animate-in fade-in duration-500">
+      {/* Sidebar - Group Info */}
+      <aside className="space-y-6">
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm relative group">
+          {isAdmin && !isEditingCircles && (
+            <button 
+              onClick={() => { setEditCirclesList(circles); setIsEditingCircles(true); }}
+              className="absolute top-4 right-4 p-2 text-stone-400 hover:text-amber-600 rounded-full transition-all"
+              title="Edit Circles"
+            >
+              <Edit2 size={16} />
+            </button>
+          )}
+
+          <h3 className="font-bold text-lg mb-4 text-stone-900 serif">Your Circle</h3>
+          
+          {isEditingCircles ? (
+            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                {editCirclesList.map((circle) => (
+                  <div key={circle.id} className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${circle.color}`}>
+                        {circle.initial}
+                      </div>
+                      <input 
+                        type="text" 
+                        value={circle.name}
+                        onChange={e => updateCircle(circle.id, { name: e.target.value })}
+                        className="flex-1 bg-white border border-stone-200 rounded px-2 py-1 text-xs font-bold"
+                        placeholder="Circle Name"
+                      />
+                      <button onClick={() => removeCircle(circle.id)} className="text-rose-500 p-1 hover:bg-rose-50 rounded"><Trash2 size={14} /></button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[10px] uppercase font-bold text-stone-400">Members:</label>
+                      <input 
+                        type="number" 
+                        value={circle.members}
+                        onChange={e => updateCircle(circle.id, { members: parseInt(e.target.value) || 0 })}
+                        className="w-16 bg-white border border-stone-200 rounded px-2 py-1 text-xs"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button onClick={addCircle} className="w-full py-2 border border-dashed border-stone-300 rounded-xl text-stone-400 text-xs flex items-center justify-center gap-1 hover:bg-stone-50"><PlusCircle size={14} /> Add Circle</button>
+              <div className="flex gap-2 pt-2 border-t border-stone-100">
+                <button onClick={handleSaveCircles} className="flex-1 py-2 bg-stone-900 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1"><Check size={14} /> Save</button>
+                <button onClick={() => setIsEditingCircles(false)} className="px-3 py-2 bg-white text-stone-500 rounded-lg font-bold text-xs border border-stone-200"><X size={14} /></button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {circles.map((circle) => (
+                <div key={circle.id} className="flex items-center gap-3 group/item cursor-pointer">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold transition-all group-hover/item:scale-110 ${circle.color}`}>
+                    {circle.initial}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-stone-800 group-hover/item:text-amber-600 transition-colors">{circle.name}</p>
+                    <p className="text-xs text-stone-500">{circle.members} Members</p>
+                  </div>
+                </div>
+              ))}
+              {circles.length === 0 && <p className="text-xs text-stone-400 italic text-center py-2">No active circles.</p>}
+              <button className="w-full py-2 border border-dashed border-stone-300 rounded-lg text-stone-400 text-xs font-bold hover:bg-stone-50 transition-all flex items-center justify-center gap-2 mt-2">
+                <PlusCircle size={14} /> Create New Circle
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100">
+          <h3 className="font-bold text-amber-900 mb-4 serif">Prayer Chain</h3>
+          <p className="text-amber-800/70 text-sm mb-4 leading-relaxed">Join 8 active prayer requests in your circle today.</p>
+          <button className="w-full py-3 bg-white text-amber-700 rounded-xl font-bold text-sm shadow-sm hover:shadow-md transition-all active:scale-95">
+            Join the Prayer Chain
+          </button>
+        </div>
+      </aside>
+
+      {/* Main feed */}
+      <section className="md:col-span-3 space-y-6">
+        <div className="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm transition-all focus-within:ring-2 focus-within:ring-amber-200">
+          <div className="flex gap-4">
+            <div className="w-12 h-12 bg-amber-600 rounded-full flex items-center justify-center text-white font-bold shrink-0">
+              {isAdmin ? 'A' : 'Me'}
+            </div>
+            <div className="flex-1">
+              <textarea 
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                placeholder="Share a reflection, prayer request, or question with your circle..."
+                className="w-full p-4 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-amber-500 resize-none h-28 placeholder:text-stone-400 text-stone-700 transition-all"
+              ></textarea>
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex gap-2">
+                  <button className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all" title="Attach Image (Coming Soon)">
+                    <Share2 size={18} />
+                  </button>
+                </div>
+                <button 
+                  onClick={handlePostSubmit}
+                  disabled={!newPostContent.trim() || isPosting}
+                  className="px-8 py-3 bg-amber-600 text-white font-bold rounded-xl hover:bg-amber-700 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isPosting ? <RefreshCw size={18} className="animate-spin" /> : <Send size={18} />}
+                  Post to Circle
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {posts.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-stone-300">
+              <MessageSquare size={48} className="mx-auto text-stone-200 mb-4" />
+              <h4 className="text-stone-400 font-bold serif text-xl">The circle is quiet...</h4>
+              <p className="text-stone-300 text-sm">Be the first to share a reflection or word of encouragement.</p>
+            </div>
+          ) : (
+            posts.map(post => (
+              <article key={post.id} className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200 shadow-sm hover:shadow-md transition-all group relative animate-in slide-in-from-top-4 duration-300">
+                {isAdmin && (
+                  <button 
+                    onClick={() => handleDeletePost(post.id)}
+                    className="absolute top-6 right-6 p-2 text-stone-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    title="Remove Post (Admin)"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                
+                <div className="flex items-center gap-4 mb-6">
+                  <img src={post.avatar} className="w-12 h-12 rounded-full border border-stone-100 object-cover shadow-sm" alt={post.author} />
+                  <div>
+                    <h4 className="font-bold text-stone-900 flex items-center gap-2">
+                      {post.author}
+                      {post.author.includes('Admin') && (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full font-bold uppercase tracking-wider">Staff</span>
+                      )}
+                    </h4>
+                    <p className="text-stone-400 text-xs">{post.time}</p>
+                  </div>
+                </div>
+                <p className="text-stone-700 leading-relaxed mb-6 text-lg serif whitespace-pre-wrap">
+                  {post.content}
+                </p>
+                <div className="flex gap-6 pt-4 border-t border-stone-100 text-stone-500">
+                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors group/btn">
+                    <ThumbsUp size={18} className="group-hover/btn:fill-amber-50" />
+                    <span className="text-sm">{post.likes > 0 ? post.likes : 'Like'}</span>
+                  </button>
+                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors">
+                    <MessageSquare size={18} />
+                    <span className="text-sm">{post.comments > 0 ? post.comments : 'Comment'}</span>
+                  </button>
+                  <button className="flex items-center gap-2 hover:text-amber-600 transition-colors ml-auto">
+                    <Share2 size={18} />
+                    <span className="text-sm">Share</span>
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Required for the RefreshCw icon used in the posting state
+const RefreshCw = ({ className, size }: { className?: string, size?: number }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M3 21v-5h5" />
+  </svg>
+);
+
+export default Community;

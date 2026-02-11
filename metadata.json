@@ -1,0 +1,9 @@
+
+{
+  "name": "Souls4Jesus Bible Study Circle",
+  "description": "A comprehensive community platform for Bible study groups featuring AI-powered daily verses, automated study planning, and theological Q&A.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
