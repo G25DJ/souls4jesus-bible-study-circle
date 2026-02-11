@@ -337,7 +337,12 @@ const Resources: React.FC<ResourcesProps> = ({ isAdmin = false }) => {
                           className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm font-bold focus:ring-1 focus:ring-amber-500 outline-none transition-all"
                           placeholder="File Name"
                         />
-                        {file.dataUrl && <Paperclip size={12} className="absolute right-3 top-3 text-stone-400" title="Has attachment" />}
+                        {/* Fix: Wrap the icon in a span with the title attribute to avoid type error on Paperclip component */}
+                        {file.dataUrl && (
+                          <span className="absolute right-3 top-3" title="Has attachment">
+                            <Paperclip size={12} className="text-stone-400" />
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <input 
